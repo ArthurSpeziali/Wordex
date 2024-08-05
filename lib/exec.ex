@@ -2,9 +2,26 @@ defmodule Wordex.Exec do
     @dialyzer {:nowarn_function, download_dict: 1}
     @dict_path "#{__DIR__}/../dictionaries"
 
+    @moduledoc """
+    Module to be used with the script, and create an executable.
+    Uses the OptionParse module to manage the options, for more information, use the "--help" option.
+    
+    Main function is "main/1":
+        @spec main(args :: [String.t()]) :: no_return()
+        def main(args)
+    """
+
+
+    @doc """
+    Function used by escript.
+    Escript receives the "argv" from the shell, transforms it into a list of strings and passes it to the function.
+    And finally, it uses the functions of the "Wordex" module.
+    """
+    @spec main(args :: [String.t()]) :: no_return()
     def main(args) do
         {opts, rest, unknow} = options(args)
 
+        # Considering the unknown value as an error.
         if unknow != [] do
             List.first(unknow)
             |> Wordex.Errors.invalid_option()
@@ -12,6 +29,8 @@ defmodule Wordex.Exec do
 
         if Keyword.has_key?(opts, :help) do
             IO.puts(help())
+            # Exit the program after show message (Status code: 0).
+            exit(:normal)
         end
 
         check_opts(opts)
@@ -58,7 +77,7 @@ defmodule Wordex.Exec do
             -d, --dictionary       Concatenate the new dictionary with the program's one.
                 It accepts: path/to/file
 
-            -o, --offline          Use the downloaded dictionareis. Need use "wordex download"
+            -o, --offline          Use the downloaded dictionaries. Need use "wordex download".
         """
     end
 
@@ -90,13 +109,16 @@ defmodule Wordex.Exec do
         end
 
 
+        # Using config Keyword to get the URl's dictionaries
+        urls = Application.get_all_env(:wordex)
+
         command =
             # Matching size and language of dictionary and putting the value in "command".
             case {language, size} do
-                {"pt", "light"} -> "curl -o '#{@dict_path}/poruguese-light.txt' 'https://raw.githubusercontent.com/thoughtworks/dadoware/master/7776palavras.txt'"
-                {"pt", "complex"} -> "curl -o '#{@dict_path}/poruguese-complex.txt' 'https://raw.githubusercontent.com/mmatje/br-wordlist/main/br-wordlist.txt'"
-                {"en", "light"} -> "curl -o #{@dict_path}/english-light.txt 'https://raw.githubusercontent.com/jnoodle/English-Vocabulary-Word-List/master/Oxford%205000.txt'"
-                {"en", "complex"} -> "curl -o #{@dict_path}/english-complex.txt 'https://raw.githubusercontent.com/first20hours/google-10000-english/master/google-10000-english-usa.txt'"
+                {"pt", "light"} -> "curl -o '#{@dict_path}/portuguese-light.txt' '#{urls[:pt_light]}'"
+                {"pt", "complex"} -> "curl -o '#{@dict_path}/portuguese-complex.txt' '#{urls[:pt_complex]}'"
+                {"en", "light"} -> "curl -o #{@dict_path}/english-light.txt '#{urls[:en_light]}'"
+                {"en", "complex"} -> "curl -o #{@dict_path}/english-complex.txt '#{urls[:en_complex]}'"
             end
 
         IO.puts("Downloading dictionary.")
@@ -107,13 +129,32 @@ defmodule Wordex.Exec do
 
     @spec check_opts(opts :: list()) :: no_return()
     def check_opts(opts) do
-
         cond do
+            # Checks if the option value is within a list, with the correct values.
             Keyword.get(opts, :language) not in [nil, "pt", "en"] -> Wordex.Errors.invalid_language()
             Keyword.get(opts, :size) not in [nil, "complex", "light"] -> Wordex.Errors.invalid_size()
+
+
+            # Checks if the path of file's folder exists.
+            Keyword.get(opts, :write) ->
+                path = Keyword.get(opts, :write)
+                       |> Path.dirname()
+
+                if !File.exists?(path) do
+                    Wordex.Errors.no_folder(path)
+                end
+
+            Keyword.get(opts, :dictionary) ->
+                path = Keyword.get(opts, :dictionary)
+                       |> Path.dirname()
+
+                if !File.exists?(path) do
+                    Wordex.Errors.no_folder(path)
+                end
+
+
             true -> nil
         end
-
     end
 
 end

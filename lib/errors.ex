@@ -1,5 +1,6 @@
 defmodule Wordex.Errors do
     @type value() :: nil | boolean() | String.t() | integer() | float()
+    defexception message: "Wordex Error was found."
 
     @moduledoc """
     A module that contains functions to return errors to the terminal, always using status code 1 or 2. In addition, error_make() is the appropriate function to create errors
@@ -58,6 +59,22 @@ defmodule Wordex.Errors do
     @spec no_command() :: no_return()
     def no_command() do
         error_maker("No command was passed.", 2)
+    end
+
+    @doc """
+    Function that returns an error (in the shell) if the path of file doesn't exist
+    """
+    @spec no_exist(file :: String.t()) :: no_return()
+    def no_exist(file) do
+        error_maker("The file \"#{file}\" does not exist", 1)
+    end
+
+    @doc """
+    Function that returns an error (in the shell) if the path of folder doesn't exist
+    """
+    @spec no_folder(folder :: String.t()) :: no_return() 
+    def no_folder(folder) do
+        error_maker("The folder \"#{folder}\" does not exist", 1)
     end
 
 
