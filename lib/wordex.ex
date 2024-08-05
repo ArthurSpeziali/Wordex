@@ -72,8 +72,8 @@ defmodule Wordex do
             {:en, :complex} -> urls[:en_complex]
             {_, _} -> raise(Wordex.Errors, "Invalid dictionary's languague or size")
 
-        end |>
         # Makes an http request to get the file.
+        end |>
         HTTPoison.get!()
         |> Map.get(:body)
         |> String.split("\n")
