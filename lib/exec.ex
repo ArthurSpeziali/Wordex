@@ -54,9 +54,13 @@ defmodule Wordex.Exec do
         Usage: wordex --opts command {path/to/file}
 
         Commands:
+            check                 Checks the file passed as an argument, looking at it word by word and correcting it if necessary.
+                Affected by: All
+                Arguments: path/to/file
+
             download              Dowload the english or portuguese dictionary to use off-line.
                 Affected by: --language, --size
-
+            
 
         Options:
             -h, --help             Show this help message.
@@ -66,18 +70,18 @@ defmodule Wordex.Exec do
 
             -a, --automatic        Set the mode "automatic", which replace each misspelled word for the most correct word, without asking.
 
-            -i, --interactive      Set the mode "interactive", where it asks you which word will be replaced for the misspelled word (Or do nothing). This option already is default.
-
             -s, --size             Set the dictionary's size.
                 It accepts: "complex" (For big dictionary) or "light" (For small dictionary)
 
             -w, --write            Rewrite the new text (With new substitutions) into a new file.
                 It accepts: path/to/file
 
-            -d, --dictionary       Concatenate the new dictionary with the program's one.
+            -c, --concatenate      Concatenate the new dictionary with the program's one.
                 It accepts: path/to/file
 
             -o, --offline          Use the downloaded dictionaries. Need use "wordex download".
+
+            -S, --spaces           Ignore spaces in a file when writing.
         """
     end
 
@@ -86,8 +90,8 @@ defmodule Wordex.Exec do
     defp options(args) do
         OptionParser.parse(
             args,
-            aliases: [h: :help, l: :language, a: :automatic, i: :interactive, w: :write, d: :dictionary, s: :size],
-            strict: [help: :boolean, language: :string, automatic: :boolean, interactive: :boolean, write: :string, dictionary: :string, size: :string]
+            aliases: [h: :help, l: :language, i: :interactive, w: :write, c: :concatenate, s: :size, S: :spaces],
+            strict: [help: :boolean, language: :string, interactive: :boolean, write: :string, concatenate: :string, size: :string, spaces: :boolean]
         )
     end
 
@@ -128,14 +132,14 @@ defmodule Wordex.Exec do
 
 
     @spec check_opts(opts :: list()) :: no_return()
-    def check_opts(opts) do
+    defp check_opts(opts) do
         cond do
             # Checks if the option value is within a list, with the correct values.
             Keyword.get(opts, :language) not in [nil, "pt", "en"] -> Wordex.Errors.invalid_language()
             Keyword.get(opts, :size) not in [nil, "complex", "light"] -> Wordex.Errors.invalid_size()
 
 
-            # Checks if the path of file's folder exists.
+            # Checks if the path of file or folder exists.
             Keyword.get(opts, :write) ->
                 path = Keyword.get(opts, :write)
                        |> Path.dirname()
@@ -146,10 +150,9 @@ defmodule Wordex.Exec do
 
             Keyword.get(opts, :dictionary) ->
                 path = Keyword.get(opts, :dictionary)
-                       |> Path.dirname()
 
                 if !File.exists?(path) do
-                    Wordex.Errors.no_folder(path)
+                    Wordex.Errors.no_exist(path)
                 end
 
 

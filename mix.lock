@@ -8,5 +8,6 @@
   "parse_trans": {:hex, :parse_trans, "3.4.1", "6e6aa8167cb44cc8f39441d05193be6e6f4e7c2946cb2759f015f8c56b76e5ff", [:rebar3], [], "hexpm", "620a406ce75dada827b82e453c19cf06776be266f5a67cff34e1ef2cbb60e49a"},
   "simetric": {:hex, :simetric, "0.2.0", "0d6559aed7b08fd1b6794526c33836e55cee8dd99d2f9bf3e8ea46fdeb47d9e3", [:mix], [], "hexpm", "b43e80abe3d91505bf06d98b1088eb87a0b0281e931c987e35836524be4944fa"},
   "ssl_verify_fun": {:hex, :ssl_verify_fun, "1.1.7", "354c321cf377240c7b8716899e182ce4890c5938111a1296add3ec74cf1715df", [:make, :mix, :rebar3], [], "hexpm", "fe4c190e8f37401d30167c8c405eda19469f34577987c76dde613e838bbc67f8"},
+  "unicode": {:hex, :unicode, "1.19.0", "264191eacb1d44039d0dbb9fd936c557431825373b6e7b18d77e80cb0cc344bd", [:mix], [], "hexpm", "ae83bbf54429a67bc6fa9c941a6e9f0ec38dd9c2a32b21583ad511d3b6555631"},
   "unicode_util_compat": {:hex, :unicode_util_compat, "0.7.0", "bc84380c9ab48177092f43ac89e4dfa2c6d62b40b8bd132b1059ecc7232f9a78", [:rebar3], [], "hexpm", "25eee6d67df61960cf6a794239566599b09e17e668d3700247bc498638152521"},
 }

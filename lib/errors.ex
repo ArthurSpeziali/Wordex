@@ -3,7 +3,7 @@ defmodule Wordex.Errors do
     defexception message: "Wordex Error was found."
 
     @moduledoc """
-    A module that contains functions to return errors to the terminal, always using status code 1 or 2. In addition, error_make() is the appropriate function to create errors
+    A module that contains functions to return errors to the terminal, always using status code 1 or 2. In addition, error_make/2 is the appropriate function to create errors
 
     @spec error_maker(message :: String.t(), status_code :: non_neg_integer()) :: no_return()
     defp error_maker(message, status_code) 

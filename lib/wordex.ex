@@ -1,7 +1,6 @@
 defmodule Wordex do
     @type stream() :: struct()
     @type dict() :: [map()]
-    @black_words [""]
 
     @moduledoc """
     Main module of the Wordex program, where it is a human interface module.
@@ -15,8 +14,35 @@ defmodule Wordex do
     """
 
 
-    @spec start(file_path :: Path.t(), stream_dict :: stream()) :: dict()
-    def start(file_path, stream_dict) do
+    @doc """
+    Function that receives a path to a file, and a dict (Stream Data). To create the dict, look at the functions "online_fetch/2" or 
+    "offline_fetch/1". In addition, it has an optional argument "space?", which by default is "true", but if you want to include unnecessary 
+    spaces in your files, set it to "false".
+
+    It returns a list of maps, where each map is a word from the file that is the key, and its value is an Atom ":correct" if it is correct, 
+    or if it is wrong, a list of 5 suggestions strings (in order of most similar).
+
+    Wordex.start("Hello.txt", dict, false)
+
+    #=> [
+          %{"This" => :correct},
+          %{"" => :correct},
+          %{"" => :correct},
+          %{"" => :correct},
+          %{"is" => :correct},
+          %{"a" => :correct},
+          %{
+            "beautifl" => ["beautiful", "beat", "beauty", "brutal",
+             "testify", "meantime"]
+          },
+          %{
+            "setence!\\n" => ["sentence", "essence", "science",
+             "absence", "stance", "settle"]
+          }
+        ]
+    """
+    @spec start(file_path :: Path.t(), stream_dict :: stream(), space? :: boolean()) :: dict()
+    def start(file_path, stream_dict, space? \\ true) do
         if !File.exists?(file_path) do
             raise(Wordex.Errors, "File path does not exist. (#{file_path})")
         end
@@ -24,14 +50,20 @@ defmodule Wordex do
         # Opens the file, turns it into a list and removes the characters from the blacklist (@black_words).
         content = File.read!(file_path)
                   |> String.split(" ")
-                  |> Enum.reject(&(&1 in @black_words))
 
+        content = if space? do
+            Enum.reject(content, &(&1 == ""))
+        else
+            content
+        end
 
         # It starts a process of the "term_compare()" function for each word.
         # At the end it waits for all of them to be completed and saves them in a list, in the correct order.
         tasks = Enum.map(content, fn word ->
             Task.async(Wordex, :term_compare, [reform_string(word), stream_dict])
         end)
+        # "Process.sleep(50)" prevents errors from occurring, as a task starts exactly when one finishes.
+        Process.sleep(50)
         response = Task.await_many(tasks, :infinity)
 
         # Turns the two lists into a list of maps, the word is the key, and the suggestion (or whether it is correct) is the value.
@@ -59,6 +91,7 @@ defmodule Wordex do
 
     @doc """
     Function that returns a list of strings (In a Stream Data) from an http request, each item with one word.
+    The first argument is the language (:en, :pt) in a Atom. The second is size (:light, :complex) also in a Atom.
     """
     @spec online_fetch(language :: atom(), size :: atom()) :: stream()
     def online_fetch(language \\ :en, size \\ :light) do
@@ -97,7 +130,7 @@ defmodule Wordex do
         ) |> Enum.sort_by(
             &(Map.values(&1)),
             :asc
-        ) |> Enum.take(6)
+        ) |> Enum.take(5)
         |> make_result(input_string)
     end
 
@@ -126,15 +159,21 @@ defmodule Wordex do
     end
 
 
-    @doc """
-    Function that formats or replaces a string, to be valid when comparing
-    """
     @spec reform_string(string :: String.t()) :: String.t()
-    def reform_string(string) do
+    defp reform_string(string) do
         String.downcase(string)
         |> String.replace("\n", "")
         |> String.replace("!", "")
         |> String.replace("?", "")
+    end
+
+
+    @spec ask_change(suggestions :: dict(), file_path :: Path.t()) :: any()
+    def ask_change(_suggestions, file_path) do
+        if !File.exists?(file_path) do
+            raise(Wordex.Errors, "File path does not exist. (#{file_path})")
+        end
+
     end
 
 end
