@@ -55,7 +55,7 @@ defmodule Wordex do
                   |> separe_line()
 
         content = if space? do
-            Enum.reject(content, &(&1 == ""))
+            Enum.reject(content, &(&1 == "" || &1 == " "))
         else
             content
         end
@@ -72,6 +72,11 @@ defmodule Wordex do
         # Turns the two lists into a list of maps, the word is the key, and the suggestion (or whether it is correct) is the value.
         Enum.zip(content, response)
         |> Enum.map(fn {key, value} ->
+            value = if key == "\n" do
+                :correct
+            else
+                value
+            end
             %{key => value}
         end)
     end
