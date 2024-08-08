@@ -11,6 +11,9 @@ defmodule Wordex do
 
     It accepts the path to the file and a dictionary created by "online_fetch" or "offline_fetch()"
     Where it returns a list of maps, showing which words are correct, and which ones need suggestions.
+
+    After getting the list of maps containing the suggestions, choose between "force_change/2" (Automatic) or "ask_change/2" (TUI)
+    to replace the wrong words with the correct ones in the chosen file.
     """
 
 
@@ -41,15 +44,15 @@ defmodule Wordex do
           }
         ]
     """
-    @spec start(file_path :: Path.t(), stream_dict :: stream(), space? :: boolean()) :: dict()
-    def start(file_path, stream_dict, space? \\ true) do
+    @spec start(stream_dict :: stream(), file_path :: Path.t(), space? :: boolean()) :: dict()
+    def start(stream_dict, file_path, space? \\ true) do
         if !File.exists?(file_path) do
             raise(Wordex.Errors, "File path does not exist. (#{file_path})")
         end
 
         # Opens the file, turns it into a list and removes the characters from the blacklist (@black_words).
         content = File.read!(file_path)
-                  |> String.split(" ")
+                  |> separe_line()
 
         content = if space? do
             Enum.reject(content, &(&1 == ""))
@@ -71,6 +74,32 @@ defmodule Wordex do
         |> Enum.map(fn {key, value} ->
             %{key => value}
         end)
+    end
+
+
+    @spec separe_line(string :: String.t()) :: [String.t()]
+    defp separe_line(string) do
+        # Function that splits the string first by spaces, then splits it further if the string contains "\n". In the end it compacts the list 
+        # so that there are no sub-lists inside.
+        list = String.split(string, " ")
+
+        Enum.map(list, fn str ->
+
+            if String.contains?(str, "\n") do
+                index = Enum.find_index(
+                    String.to_charlist(str),
+                    &(&1 == ?\n)
+                )
+
+                String.split_at(str, index + 1)
+                |> Tuple.to_list()
+            else
+                str
+            end
+
+        end)
+        |> List.flatten()
+
     end
 
 
@@ -116,7 +145,7 @@ defmodule Wordex do
 
     @doc """
     Function that uses a data stream from a dictionary to compare the five most similar words to "input_string".
-    Then calls the "make_result()" function to find out if the word is correct, or to better reorganize the suggestions.
+    Then calls the "make_result/2" function to find out if the word is correct, or to better reorganize the suggestions.
     """
     @spec term_compare(input_string :: String.t(), stream_dict :: stream()) :: [String.t()]
     def term_compare(input_string, stream_dict) do
@@ -165,15 +194,86 @@ defmodule Wordex do
         |> String.replace("\n", "")
         |> String.replace("!", "")
         |> String.replace("?", "")
+        |> String.replace(".", "")
+        |> String.replace(",", "")
     end
 
 
-    @spec ask_change(suggestions :: dict(), file_path :: Path.t()) :: any()
-    def ask_change(_suggestions, file_path) do
-        if !File.exists?(file_path) do
-            raise(Wordex.Errors, "File path does not exist. (#{file_path})")
+    @spec ask_change(suggestions :: dict(), file_path :: Path.t()) :: no_return()
+    def ask_change(suggestions, file_path) do
+        if !File.exists?(Path.dirname(file_path)) do
+            raise(Wordex.Errors, "Folder path does not exist. (#{file_path})")
         end
 
+        corrections = Wordex.Interface.interface(suggestions, Path.basename(file_path))
+        correct_words(suggestions, corrections)
+        |> write_words(file_path)
+    end
+
+
+    @spec correct_words(suggestions :: dict(), corrections :: [String.t()]) :: [String.t()]
+    defp correct_words(suggestions, corrections) do
+        # It creates a new list, if the word in "suggestions" is correct, it uses it, now if it has the list of suggestions, 
+        # it uses the one in "corrections"
+
+        if corrections != [] do
+            index = Enum.find_index(suggestions, fn map ->
+                Map.values(map) != [:correct]
+            end)
+
+            List.replace_at(
+                suggestions,
+                index,
+                %{hd(corrections) => :correct}
+            ) |> correct_words(tl(corrections))
+
+        else
+            Enum.map(suggestions, fn map -> 
+                Map.keys(map)
+                |> List.first()
+            end)
+
+        end
+
+    end
+
+
+    @spec write_words(word_list :: [String.t()], file_path :: Path.t()) :: no_return()
+    defp write_words(word_list, file_path) do
+        content = Enum.join(word_list, " ")
+                  |> String.replace("\n ", "\n")
+        File.write(file_path, content, [:write])
+    end
+
+
+    @spec force_change(suggestions :: dict(), file_path :: Path.t()) :: no_return()
+    def force_change(suggestions, file_path) do
+        if !File.exists?(Path.dirname(file_path)) do
+            raise(Wordex.Errors, "Folder path does not exist. (#{file_path})")
+        end
+
+        Enum.map(suggestions, fn map ->
+            key = Map.keys(map)
+                  |> List.first()
+            value = Map.values(map)
+                  |> List.first()
+
+            if value != :correct do
+                # If the old string has "\n", also add "\n" to the new one, and then format it, keeping in mind whether it is capitalized 
+                # or not, and whether it has a mark.
+                correct = List.first(value)
+                if String.last(key) == "\n" do
+                    correct <> "\n"
+                else
+                    correct
+                end
+                |> Wordex.Interface.keep_mark(key)
+                |> Wordex.Interface.keep_case(key)
+            else
+                key
+            end
+
+        end) |> write_words(file_path)
     end
 
 end

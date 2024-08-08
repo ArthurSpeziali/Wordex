@@ -50,6 +50,7 @@ defmodule Wordex.Interface do
         cond do
             (number in 1..5//1) || (response == "c") -> response
 
+            # Use unicode code to use the already used line (press enter), clear the line and write over it.
             response == "r" ->
                 IO.write("\e[1A\e[K")
                 {
@@ -79,7 +80,8 @@ defmodule Wordex.Interface do
 
             IO.puts(" Working on \"#{file_name}\".")
             IO.puts(" +------#{String.duplicate("-", String.length(file_name))}------+")
-            
+
+            # Print 13 empty lines
             Enum.each(
                 1..13//1,
                 fn _number -> IO.puts("") end
@@ -103,6 +105,7 @@ defmodule Wordex.Interface do
                     Map.keys(map)
                     |> List.first()
 
+                # Skip a line in the new string if the old one has "\n".
                 {:replace, text} ->
                     if String.contains?(key_word, "\n") do
                         text <> "\n"
@@ -118,24 +121,56 @@ defmodule Wordex.Interface do
                         text <> "\n"
                     else
                         text
-                    end |> keep_case(key_word)
+                    end |> keep_mark(key_word)
+                    |> keep_case(key_word)
             end
         end
     end
 
 
+    @doc """
+    Function that if the first character of the old string is uppercase, leaves the new string capitalized.
+    """
     @spec keep_case(mod :: String.t(), original :: String.t()) :: String.t()
-    defp keep_case(mod, original) do
+    def keep_case(_mod, ""), do: ""
 
-        String.to_charlist(original)
-        |> Enum.any?(fn char -> 
-            List.to_string([char])
-            |> uppercase?()
-        end)
+    def keep_case(mod, original) do
+
+        String.first(original)
+        |> uppercase?()
         |> if do
             String.capitalize(mod)
         else
             mod
+        end
+
+    end
+
+
+    @doc """
+    Function that if the last character of the old string was a mark (explanation point, full stop...), places the mark in the new string.
+    """
+    @spec keep_mark(mod :: String.t(), original :: String.t()) :: String.t()
+    def keep_mark(mod, original) do
+        char = String.last(original)
+        marks = ["!", "?", ".", ","]
+
+        # If it already has the unicode code "\n", it adds the mark first, then adds the "\n"
+        if char == "\n" do
+            char = String.at(original, -2)
+
+            if char in marks do
+                String.slice(mod, 0..-2//1) <> char <> "\n"
+            else
+                mod
+            end
+
+        else
+            if char in marks do
+                mod <> char
+            else
+                mod
+            end
         end
 
     end

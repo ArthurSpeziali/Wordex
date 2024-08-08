@@ -77,6 +77,38 @@ defmodule Wordex.Errors do
         error_maker("The folder \"#{folder}\" does not exist", 1)
     end
 
+    @doc """
+    Function that returns an error (in the shell) if no way to the past argument
+    """
+    @spec no_path(command :: String.t()) :: no_return()
+    def no_path(command) do
+        error_maker("No file path was passed to the \"#{command}\" command", 2)
+    end
+
+    @doc """
+    Function that returns an error (in the shell) if the past argument does not exist
+    """
+    @spec invalid_path(command :: String.t()) :: no_return()
+    def invalid_path(command) do
+        error_maker("The file path past to \"#{command}\" command is invalid", 2)
+    end
+    
+    @doc """
+    Function that returns an error (in the shell) when the dictionary file was not found in the default directory (~/.wordex).
+    """
+    @spec dict_notfound(dict :: String.t()) :: no_return()
+    def dict_notfound(dict) do
+        error_maker("The #{dict} dictionary was not found in \"~/.wordex\"", 1)
+    end
+
+    @doc """
+    Function that resturns an error (in the shell) if the command is invalid
+    """
+    @spec invalid_command(command :: String.t()) :: no_return()
+    def invalid_command(command) do
+        error_maker("Invalid command: \"#{command}\"", 2)
+    end
+
 
     @spec error_maker(message :: String.t(), status_code :: non_neg_integer()) :: no_return()
     defp error_maker(message, status_code) do
