@@ -1,6 +1,7 @@
 defmodule Wordex.MixProject do
     use Mix.Project
 
+    Mix.env(:prod)
     def project do
         [
             app: :wordex,
